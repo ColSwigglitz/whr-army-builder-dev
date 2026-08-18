@@ -1,0 +1,12 @@
+{
+  "meta": {
+    "schemaVersion": "0.1",
+    "game": "Warhammer Renaissance",
+    "source": "WHR Armies 2026-27 final version",
+    "faction": "Ogre Mercenaries",
+    "status": "populated-payload",
+    "payloadFile": "whr_ogre_mercenaries_v0_1.payload",
+    "notes": ["Populated from the WHR Ogre Mercenaries section. Allied tribes are attached at load time from existing army datasets."]
+  },
+  "faction": {"id":"ogre_mercenaries","name":"Ogre Mercenaries"}
+}

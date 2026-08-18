@@ -1,0 +1,11 @@
+{
+  "meta": {
+    "schemaVersion": "0.1",
+    "game": "Warhammer Renaissance",
+    "source": "WHR Armies 2026-27 final version",
+    "faction": "Norse",
+    "status": "populated-payload",
+    "payloadFile": "whr_norse_v0_1.payload",
+    "notes": ["Populated from the WHR Norse section. Norse-specific heroic individuals, raider mode and Dwarf runes are implemented by the Norse extension layer."]
+  }
+}

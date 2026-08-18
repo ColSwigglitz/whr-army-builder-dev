@@ -1,0 +1,10 @@
+{
+  "meta": {
+    "schemaVersion": "0.1",
+    "game": "Warhammer Renaissance",
+    "source": "WHR Armies 2026-27 final version",
+    "faction": "The Slann Empire",
+    "payloadFile": "whr_slann_empire_v0_1.payload",
+    "notes": ["Compact loader stub. Full Slann Empire army data is stored in the gzip/base64 payload."]
+  }
+}

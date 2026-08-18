@@ -1,0 +1,11 @@
+{
+  "meta": {
+    "schemaVersion": "0.1",
+    "game": "Warhammer Renaissance",
+    "source": "WHR Armies 2026-27 final version",
+    "faction": "Kislev",
+    "payloadFile": "whr_kislev_v0_1.payload",
+    "notes": ["Compact loader stub. Full Kislev data is stored in the gzip/base64 payload."]
+  },
+  "faction": {"id":"kislev","name":"Kislev"}
+}
