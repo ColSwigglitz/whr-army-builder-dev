@@ -83,4 +83,12 @@
   });
 
   observer.observe(document.documentElement, { childList: true, subtree: true });
+
+  if (!document.querySelector('script[data-whr-account-email]')) {
+    const accountEmailScript = document.createElement("script");
+    accountEmailScript.src = "dev_account_email.js?v=1";
+    accountEmailScript.async = false;
+    accountEmailScript.dataset.whrAccountEmail = "1";
+    document.body.appendChild(accountEmailScript);
+  }
 })();
