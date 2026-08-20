@@ -1,12 +1,14 @@
-// Mighty Empires development: stable local coastal tile renderer.
+// Mighty Empires development: stable local coastal tile renderer using local source sheets.
 (() => {
-  const BASE='assets/mighty-empires/coastal/';
+  const BASE='assets/mighty-empires/coastal/source/';
+  const SHEETS={1:`${BASE}coastal_set_1.jpg`,2:`${BASE}coastal_set_2.jpg`};
+  const CENTRES=[[84,77],[336,77],[210,146],[84,216],[336,216],[210,285],[84,355],[336,355],[210,424],[84,494],[336,494],[210,563],[84,633],[336,633]];
   const EDGE_SETS={
     1:[['sea','sea','land','land','land','sea'],['sea','sea','sea','sea','land','sea'],['land','land','land','sea','land','land'],['sea','sea','sea','sea','land','sea'],['land','land','land','sea','sea','land'],['sea','land','land','land','land','sea'],['sea','land','land','land','land','sea'],['land','land','land','sea','sea','land'],['sea','sea','land','land','land','sea'],['land','land','land','sea','land','land'],['sea','sea','sea','land','land','sea'],['land','sea','sea','sea','sea','land'],['sea','sea','land','land','land','sea'],['land','land','land','sea','land','land']],
     2:[['sea','land','land','land','land','land'],['land','sea','sea','sea','sea','land'],['sea','sea','sea','sea','land','land'],['land','sea','sea','sea','sea','land'],['sea','land','land','land','sea','land'],['sea','sea','land','land','land','sea'],['land','sea','sea','land','sea','sea'],['sea','land','land','land','sea','land'],['land','land','sea','sea','land','land'],['sea','land','land','land','land','land'],['land','land','sea','sea','land','land'],['sea','sea','sea','sea','land','sea'],['land','sea','sea','sea','sea','land'],['sea','land','land','land','land','sea']]
   };
   const TILES=[];
-  for(const set of [1,2]) for(let i=0;i<14;i++) TILES.push({id:`coastal${set}_${String(i+1).padStart(2,'0')}`,src:`${BASE}coastal${set}_${String(i+1).padStart(2,'0')}.svg`,edges:EDGE_SETS[set][i]});
+  for(const set of [1,2]) CENTRES.forEach(([cx,cy],i)=>TILES.push({id:`coastal${set}_${String(i+1).padStart(2,'0')}`,set,cx,cy,edges:EDGE_SETS[set][i]}));
   const byId=new Map(TILES.map(t=>[t.id,t]));
   let campaignId=null,hexes=[],loading=false;
 
@@ -14,7 +16,7 @@
     if(document.getElementById('meLocalTileStyles'))return;
     const s=document.createElement('style');s.id='meLocalTileStyles';s.textContent=`
       .me-hex{width:104px!important;height:90px!important;overflow:hidden!important;clip-path:polygon(25% 0,75% 0,100% 50%,75% 100%,25% 100%,0 50%)!important;border:0!important}
-      .me-tile-image{position:absolute;inset:0;width:104px;height:90px;display:block;z-index:0;pointer-events:none;transform-origin:52px 45px}
+      .me-tile-art{position:absolute;left:-7px;top:-7px;width:118px;height:104px;display:block;z-index:0;pointer-events:none;background-repeat:no-repeat;background-size:327.6px 463.45px;transform-origin:59px 52px}
       .me-hex.coastal{background:#9fcbd5!important}
       .me-hex .me-hex-label,.me-hex .me-feature{position:relative;z-index:3}
       .me-rotate-tile{margin-top:8px;width:100%}
@@ -38,6 +40,14 @@
     const {error}=await window.whrSupabase.from('mighty_empire_hexes').update({terrain_variant:tile.id,rotation,updated_at:new Date().toISOString()}).eq('id',h.id);
     if(!error){h.terrain_variant=tile.id;h.rotation=rotation;}
   }
+  function styleArt(art,tile,rotation){
+    const scale=.65;
+    const x=-(tile.cx-80)*scale-7;
+    const y=-(tile.cy-80)*scale-7;
+    art.style.backgroundImage=`url('${SHEETS[tile.set]}')`;
+    art.style.backgroundPosition=`${x}px ${y}px`;
+    art.style.transform=`rotate(${rotation}deg)`;
+  }
   async function decorate(){
     const mapEl=document.getElementById('meMap');if(!mapEl||!hexes.length)return;
     const map=new Map(hexes.map(h=>[key(h.q,h.r),h]));
@@ -46,11 +56,11 @@
       const m=(b.querySelector('.me-hex-label')?.textContent||'').match(/(\d+)\s*,\s*(\d+)/);if(!m)return;
       const h=map.get(key(Number(m[1]),Number(m[2])));if(!h)return;
       b.style.left=`${h.q*78}px`;b.style.top=`${h.r*90+(h.q%2?45:0)}px`;
-      b.querySelector('.me-tile-image')?.remove();
+      b.querySelector('.me-tile-art')?.remove();
       if(h.terrain_type!=='coastal')return;
       let tile=byId.get(h.terrain_variant),rotation=Number(h.rotation)||0;
       if(!tile){const c=choose(h,map);tile=c.tile;rotation=c.rotation;pending.push(persist(h,tile,rotation));}
-      const img=document.createElement('img');img.className='me-tile-image';img.alt='';img.src=tile.src;img.style.transform=`rotate(${rotation}deg)`;b.prepend(img);
+      const art=document.createElement('span');art.className='me-tile-art';styleArt(art,tile,rotation);b.prepend(art);
     });
     installRotate();
     if(pending.length)await Promise.allSettled(pending);
@@ -62,23 +72,13 @@
     const btn=document.createElement('button');btn.id='meRotateTile';btn.className='me-btn secondary me-rotate-tile';btn.type='button';btn.textContent='Rotate Tile 60°';
     btn.onclick=async()=>{btn.disabled=true;const next=((Number(h.rotation)||0)+60)%360;const {error}=await window.whrSupabase.from('mighty_empire_hexes').update({rotation:next,updated_at:new Date().toISOString()}).eq('id',h.id);if(error){alert(`Unable to rotate tile: ${error.message}`);btn.disabled=false;return;}h.rotation=next;await decorate();};side.appendChild(btn);
   }
-
   function captureCampaign(event){
     const button=event.target.closest?.('[data-open-campaign]');
     const card=button?.closest?.('.campaign-card');
     if(!button?.dataset?.openCampaign||!card?.textContent?.includes('Mighty Empires'))return;
-    campaignId=button.dataset.openCampaign;hexes=[];
-    // The core Mighty Empires click handler opens and renders the dialog first.
-    setTimeout(loadHexes,120);
+    campaignId=button.dataset.openCampaign;hexes=[];setTimeout(loadHexes,150);
   }
-
-  function hook(){
-    installStyles();
-    document.addEventListener('click',captureCampaign,true);
-    document.addEventListener('click',e=>{
-      if(e.target.closest?.('#meReload'))setTimeout(loadHexes,120);
-      if(e.target.closest?.('#meMap .me-hex'))setTimeout(installRotate,0);
-    });
-  }
-  hook();
+  installStyles();
+  document.addEventListener('click',captureCampaign,true);
+  document.addEventListener('click',e=>{if(e.target.closest?.('#meReload'))setTimeout(loadHexes,150);if(e.target.closest?.('#meMap .me-hex'))setTimeout(installRotate,0);});
 })();
