@@ -53,8 +53,7 @@
       cloudSaveScript.onload = () => {
         const landingArmiesScript = document.createElement("script"); landingArmiesScript.src = "dev_landing_armies.js?v=1"; landingArmiesScript.async = false;
         landingArmiesScript.onload = () => {
-          const privacyScript = document.createElement("script"); privacyScript.src = "dev_privacy_account.js?v=2"; privacyScript.async = false;
-          privacyScript.onload = () => {
+          const continueAfterPrivacy = () => {
             const retentionScript = document.createElement("script"); retentionScript.src = "dev_retention.js?v=1"; retentionScript.async = false;
             retentionScript.onload = () => {
               const sharedScript = document.createElement("script"); sharedScript.src = "dev_shared_armies.js?v=3"; sharedScript.async = false;
@@ -125,6 +124,13 @@
               document.body.appendChild(sharedScript);
             };
             document.body.appendChild(retentionScript);
+          };
+
+          const privacyScript = document.createElement("script"); privacyScript.src = "dev_privacy_account.js?v=3"; privacyScript.async = false;
+          privacyScript.onload = continueAfterPrivacy;
+          privacyScript.onerror = () => {
+            console.warn("dev_privacy_account.js failed to load; continuing with the remaining Dev modules.");
+            continueAfterPrivacy();
           };
           document.body.appendChild(privacyScript);
         };
