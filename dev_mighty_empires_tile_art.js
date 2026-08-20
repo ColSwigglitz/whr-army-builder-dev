@@ -1,26 +1,72 @@
-// Mighty Empires development: image-based coastal tiles extracted from the two supplied Coastal sheets.
+// Mighty Empires development: stable local coastal tile renderer.
 (() => {
-  const SHEETS={1:'https://www.fysh.org/~katie/wargames/downloads/mighty_empires/Costal1.jpg',2:'https://www.fysh.org/~katie/wargames/downloads/mighty_empires/Costal2.jpg'};
-  const CENTRES=[[84,77],[336,77],[210,146],[84,216],[336,216],[210,285],[84,355],[336,355],[210,424],[84,494],[336,494],[210,563],[84,633],[336,633]];
-  const EDGE_SETS={1:[['sea','sea','land','land','land','sea'],['sea','sea','sea','sea','land','sea'],['land','land','land','sea','land','land'],['sea','sea','sea','sea','land','sea'],['land','land','land','sea','sea','land'],['sea','land','land','land','land','sea'],['sea','land','land','land','land','sea'],['land','land','land','sea','sea','land'],['sea','sea','land','land','land','sea'],['land','land','land','sea','land','land'],['sea','sea','sea','land','land','sea'],['land','sea','sea','sea','sea','land'],['sea','sea','land','land','land','sea'],['land','land','land','sea','land','land']],2:[['sea','land','land','land','land','land'],['land','sea','sea','sea','sea','land'],['sea','sea','sea','sea','land','land'],['land','sea','sea','sea','sea','land'],['sea','land','land','land','sea','land'],['sea','sea','land','land','land','sea'],['land','sea','sea','land','sea','sea'],['sea','land','land','land','sea','land'],['land','land','sea','sea','land','land'],['sea','land','land','land','land','land'],['land','land','sea','sea','land','land'],['sea','sea','sea','sea','land','sea'],['land','sea','sea','sea','sea','land'],['sea','land','land','land','land','sea']]};
-  const TILES=[];for(const set of [1,2])CENTRES.forEach(([cx,cy],i)=>TILES.push({id:`coastal${set}_${String(i+1).padStart(2,'0')}`,set,cx,cy,edges:EDGE_SETS[set][i]}));
+  const BASE='assets/mighty-empires/coastal/';
+  const EDGE_SETS={
+    1:[['sea','sea','land','land','land','sea'],['sea','sea','sea','sea','land','sea'],['land','land','land','sea','land','land'],['sea','sea','sea','sea','land','sea'],['land','land','land','sea','sea','land'],['sea','land','land','land','land','sea'],['sea','land','land','land','land','sea'],['land','land','land','sea','sea','land'],['sea','sea','land','land','land','sea'],['land','land','land','sea','land','land'],['sea','sea','sea','land','land','sea'],['land','sea','sea','sea','sea','land'],['sea','sea','land','land','land','sea'],['land','land','land','sea','land','land']],
+    2:[['sea','land','land','land','land','land'],['land','sea','sea','sea','sea','land'],['sea','sea','sea','sea','land','land'],['land','sea','sea','sea','sea','land'],['sea','land','land','land','sea','land'],['sea','sea','land','land','land','sea'],['land','sea','sea','land','sea','sea'],['sea','land','land','land','sea','land'],['land','land','sea','sea','land','land'],['sea','land','land','land','land','land'],['land','land','sea','sea','land','land'],['sea','sea','sea','sea','land','sea'],['land','sea','sea','sea','sea','land'],['sea','land','land','land','land','sea']]
+  };
+  const TILES=[];
+  for(const set of [1,2]) for(let i=0;i<14;i++) TILES.push({id:`coastal${set}_${String(i+1).padStart(2,'0')}`,src:`${BASE}coastal${set}_${String(i+1).padStart(2,'0')}.svg`,edges:EDGE_SETS[set][i]});
   const byId=new Map(TILES.map(t=>[t.id,t]));
-  let campaignId=null,hexes=[],loading=false,persisting=new Set(),decorating=false;
+  let campaignId=null,hexes=[],loading=false;
 
-  function installStyles(){if(document.getElementById('meTileArtStyles'))return;const s=document.createElement('style');s.id='meTileArtStyles';s.textContent=`.me-hex{width:104px!important;height:90px!important;overflow:hidden!important}.me-tile-art{position:absolute;width:104px;height:104px;left:0;top:-7px;background-repeat:no-repeat;background-size:327.6px 463.45px;transform-origin:52px 52px;z-index:0;pointer-events:none}.me-hex.coastal{background:#9fcbd5!important}.me-hex .me-hex-label,.me-hex .me-feature{position:relative;z-index:3}.me-rotate-tile{margin-top:8px;width:100%}`;document.head.appendChild(s);}
-  function capture(event){const b=event.target.closest?.('[data-open-campaign]');const card=b?.closest?.('.campaign-card');if(b?.dataset?.openCampaign&&card?.textContent?.includes('Mighty Empires')){campaignId=b.dataset.openCampaign;hexes=[];}}
-  function owner(){return document.getElementById('meCampaignMeta')?.textContent?.includes('Campaign owner');}
-  const k=(q,r)=>`${q},${r}`;
-  function directionalNeighbours(h){const odd=h.q&1;return odd?[[h.q,h.r-1],[h.q+1,h.r],[h.q+1,h.r+1],[h.q,h.r+1],[h.q-1,h.r+1],[h.q-1,h.r]]:[[h.q,h.r-1],[h.q+1,h.r-1],[h.q+1,h.r],[h.q,h.r+1],[h.q-1,h.r],[h.q-1,h.r-1]];}
-  function desiredEdges(h,map){return directionalNeighbours(h).map(([q,r])=>{const n=map.get(k(q,r));return !n||n.terrain_type==='sea'?'sea':'land';});}
+  function installStyles(){
+    if(document.getElementById('meLocalTileStyles'))return;
+    const s=document.createElement('style');s.id='meLocalTileStyles';s.textContent=`
+      .me-hex{width:104px!important;height:90px!important;overflow:hidden!important;clip-path:polygon(25% 0,75% 0,100% 50%,75% 100%,25% 100%,0 50%)!important}
+      .me-tile-image{position:absolute;inset:0;width:100%;height:100%;display:block;z-index:0;pointer-events:none;transform-origin:50% 50%}
+      .me-hex.coastal{background:#9fcbd5!important}
+      .me-hex .me-hex-label,.me-hex .me-feature{position:relative;z-index:3}
+      .me-rotate-tile{margin-top:8px;width:100%}
+    `;document.head.appendChild(s);
+  }
+  const key=(q,r)=>`${q},${r}`;
+  function dirs(h){const o=h.q&1;return o?[[h.q,h.r-1],[h.q+1,h.r],[h.q+1,h.r+1],[h.q,h.r+1],[h.q-1,h.r+1],[h.q-1,h.r]]:[[h.q,h.r-1],[h.q+1,h.r-1],[h.q+1,h.r],[h.q,h.r+1],[h.q-1,h.r],[h.q-1,h.r-1]];}
+  function desired(h,map){return dirs(h).map(([q,r])=>{const n=map.get(key(q,r));return !n||n.terrain_type==='sea'?'sea':'land';});}
   function rotated(edges,steps){return edges.map((_,i)=>edges[(i-steps+6)%6]);}
   function hash(h){return Math.abs(((h.q*73856093)^(h.r*19349663))>>>0);}
-  function bestTile(h,map){const want=desiredEdges(h,map);let best=null;for(const t of TILES)for(let steps=0;steps<6;steps++){const got=rotated(t.edges,steps);let mismatch=0;for(let i=0;i<6;i++)if(got[i]!==want[i])mismatch++;const tie=(hash(h)+t.id.charCodeAt(t.id.length-1)*7+steps*13)%997;if(!best||mismatch<best.mismatch||(mismatch===best.mismatch&&tie<best.tie))best={tile:t,rotation:steps*60,mismatch,tie};}return best;}
-  async function loadHexes(){if(!campaignId||loading||!window.whrSupabase)return;loading=true;try{const {data,error}=await window.whrSupabase.from('mighty_empire_hexes').select('id,q,r,terrain_type,terrain_variant,rotation').eq('campaign_id',campaignId);if(error)throw error;hexes=data||[];decorate();}catch(e){console.warn('Unable to load Mighty Empires tile artwork',e);}finally{loading=false;}}
-  async function persistChoice(h,tile,rotation){if(!owner()||persisting.has(h.id))return;persisting.add(h.id);try{const {error}=await window.whrSupabase.from('mighty_empire_hexes').update({terrain_variant:tile.id,rotation,updated_at:new Date().toISOString()}).eq('id',h.id);if(error)throw error;h.terrain_variant=tile.id;h.rotation=rotation;}catch(e){console.warn('Unable to persist coastal tile choice',e);}finally{persisting.delete(h.id);}}
-  function spriteStyle(tile,rotation){const scale=.65,x=-(tile.cx-80)*scale,y=-(tile.cy-80)*scale;return {backgroundImage:`url('${SHEETS[tile.set]}')`,backgroundPosition:`${x}px ${y}px`,transform:`rotate(${rotation}deg)`};}
-  function decorate(){if(decorating||!hexes.length)return;decorating=true;try{const map=new Map(hexes.map(h=>[k(h.q,h.r),h]));document.querySelectorAll('#meMap .me-hex').forEach(b=>{const m=(b.querySelector('.me-hex-label')?.textContent||'').match(/(\d+)\s*,\s*(\d+)/);if(!m)return;const q=Number(m[1]),r=Number(m[2]),h=map.get(k(q,r));if(!h)return;b.style.left=`${q*78}px`;b.style.top=`${r*90+(q%2?45:0)}px`;if(h.terrain_type!=='coastal'){b.querySelector('.me-tile-art')?.remove();return;}let tile=byId.get(h.terrain_variant),rotation=Number(h.rotation)||0;if(!tile){const choice=bestTile(h,map);tile=choice.tile;rotation=choice.rotation;persistChoice(h,tile,rotation);}let art=b.querySelector('.me-tile-art');if(!art){art=document.createElement('span');art.className='me-tile-art';b.prepend(art);}const st=spriteStyle(tile,rotation);if(art.dataset.tileId!==tile.id||art.dataset.rotation!==String(rotation)){art.dataset.tileId=tile.id;art.dataset.rotation=String(rotation);art.style.backgroundImage=st.backgroundImage;art.style.backgroundPosition=st.backgroundPosition;art.style.transform=st.transform;}});installRotateControl();}finally{decorating=false;}}
-  function installRotateControl(){const selected=document.querySelector('#meMap .me-hex.selected'),side=document.getElementById('meSidebar');if(!selected||!side)return;const h=hexes.find(x=>x.id===selected.dataset.hexId);side.querySelector('#meRotateTile')?.remove();if(!owner()||h?.terrain_type!=='coastal')return;const btn=document.createElement('button');btn.id='meRotateTile';btn.type='button';btn.className='me-btn secondary me-rotate-tile';btn.textContent='Rotate Tile 60°';btn.onclick=async()=>{btn.disabled=true;const next=((Number(h.rotation)||0)+60)%360;const {error}=await window.whrSupabase.from('mighty_empire_hexes').update({rotation:next,updated_at:new Date().toISOString()}).eq('id',h.id);if(error){alert(`Unable to rotate tile: ${error.message}`);btn.disabled=false;return;}h.rotation=next;decorate();};side.appendChild(btn);}
-  document.addEventListener('click',capture,true);document.addEventListener('click',e=>{if(e.target.closest?.('#meReload'))setTimeout(loadHexes,80);if(e.target.closest?.('.me-hex'))setTimeout(installRotateControl,0);});
-  let pending=false;const observer=new MutationObserver(()=>{if(pending)return;pending=true;requestAnimationFrame(()=>{pending=false;installStyles();if(document.getElementById('mightyEmpiresCampaignDialog')?.open){if(!hexes.length)loadHexes();else decorate();}});});observer.observe(document.documentElement,{childList:true,subtree:true});installStyles();
+  function choose(h,map){const want=desired(h,map);let best=null;for(const t of TILES)for(let s=0;s<6;s++){const got=rotated(t.edges,s);let mismatch=0;for(let i=0;i<6;i++)if(got[i]!==want[i])mismatch++;const tie=(hash(h)+s*31+t.id.charCodeAt(t.id.length-1))%997;if(!best||mismatch<best.mismatch||(mismatch===best.mismatch&&tie<best.tie))best={tile:t,rotation:s*60,mismatch,tie};}return best;}
+  function owner(){return document.getElementById('meCampaignMeta')?.textContent?.includes('Campaign owner');}
+  async function loadHexes(){
+    if(!campaignId||loading||!window.whrSupabase)return;
+    loading=true;
+    try{const {data,error}=await window.whrSupabase.from('mighty_empire_hexes').select('id,q,r,terrain_type,terrain_variant,rotation').eq('campaign_id',campaignId);if(error)throw error;hexes=data||[];await decorate();}
+    catch(e){console.warn('Unable to load local Mighty Empires tile art',e);}finally{loading=false;}
+  }
+  async function persist(h,tile,rotation){
+    if(!owner())return;
+    const {error}=await window.whrSupabase.from('mighty_empire_hexes').update({terrain_variant:tile.id,rotation,updated_at:new Date().toISOString()}).eq('id',h.id);
+    if(!error){h.terrain_variant=tile.id;h.rotation=rotation;}
+  }
+  async function decorate(){
+    const mapEl=document.getElementById('meMap');if(!mapEl||!hexes.length)return;
+    const map=new Map(hexes.map(h=>[key(h.q,h.r),h]));
+    const pending=[];
+    mapEl.querySelectorAll('.me-hex').forEach(b=>{
+      const m=(b.querySelector('.me-hex-label')?.textContent||'').match(/(\d+)\s*,\s*(\d+)/);if(!m)return;
+      const h=map.get(key(Number(m[1]),Number(m[2])));if(!h)return;
+      b.style.left=`${h.q*78}px`;b.style.top=`${h.r*90+(h.q%2?45:0)}px`;
+      b.querySelector('.me-tile-image')?.remove();
+      if(h.terrain_type!=='coastal')return;
+      let tile=byId.get(h.terrain_variant),rotation=Number(h.rotation)||0;
+      if(!tile){const c=choose(h,map);tile=c.tile;rotation=c.rotation;pending.push(persist(h,tile,rotation));}
+      const img=document.createElement('img');img.className='me-tile-image';img.alt='';img.src=tile.src;img.style.transform=`rotate(${rotation}deg)`;b.prepend(img);
+    });
+    installRotate();
+    if(pending.length)await Promise.allSettled(pending);
+  }
+  function installRotate(){
+    const side=document.getElementById('meSidebar'),selected=document.querySelector('#meMap .me-hex.selected');if(!side)return;
+    side.querySelector('#meRotateTile')?.remove();if(!selected||!owner())return;
+    const h=hexes.find(x=>x.id===selected.dataset.hexId);if(h?.terrain_type!=='coastal')return;
+    const btn=document.createElement('button');btn.id='meRotateTile';btn.className='me-btn secondary me-rotate-tile';btn.type='button';btn.textContent='Rotate Tile 60°';
+    btn.onclick=async()=>{btn.disabled=true;const next=((Number(h.rotation)||0)+60)%360;const {error}=await window.whrSupabase.from('mighty_empire_hexes').update({rotation:next,updated_at:new Date().toISOString()}).eq('id',h.id);if(error){alert(`Unable to rotate tile: ${error.message}`);btn.disabled=false;return;}h.rotation=next;await decorate();};side.appendChild(btn);
+  }
+  function hook(){
+    installStyles();
+    const original=window.whrOpenMightyEmpires;if(typeof original!=='function'||original.__tileHooked)return;
+    const wrapped=async function(id){campaignId=id;hexes=[];const result=await original(id);setTimeout(loadHexes,0);return result;};wrapped.__tileHooked=true;window.whrOpenMightyEmpires=wrapped;
+    document.addEventListener('click',e=>{if(e.target.closest?.('#meReload'))setTimeout(loadHexes,80);if(e.target.closest?.('#meMap .me-hex'))setTimeout(installRotate,0);});
+  }
+  hook();
 })();
