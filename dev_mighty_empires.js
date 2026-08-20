@@ -13,14 +13,125 @@
 
   function ensureDialog(){let d=document.getElementById('mightyEmpiresCampaignDialog');if(d)return d;d=document.createElement('dialog');d.id='mightyEmpiresCampaignDialog';d.className='me-dialog';d.innerHTML=`<div class="me-shell"><header class="me-header"><div><div class="eyebrow">Mighty Empires</div><h2 id="meCampaignName">Campaign</h2><p id="meCampaignMeta">Persistent hex campaign</p></div><div class="me-header-actions"><button id="meReload" class="me-btn secondary" type="button">Reload Map</button><button id="meClose" class="me-btn secondary" type="button">Close</button></div></header><div id="meBody" class="me-layout"></div></div>`;document.body.appendChild(d);d.querySelector('#meClose').onclick=()=>d.close();d.querySelector('#meReload').onclick=async()=>{await loadHexes();render();};return d;}
 
-  function seeded(q,r){let n=(q*374761393+r*668265263+state.campaign.id.charCodeAt(0)*1274126177)>>>0;n=(n^(n>>13))*1274126177;n=(n^(n>>16))>>>0;return n/4294967295;}
-  function terrainFor(q,r,cols,rows){const edge=Math.min(q,r,cols-1-q,rows-1-r);const a=seeded(q,r);if(edge===0&&a<.5)return 'sea';if(edge<=1&&a<.28)return 'coastal';if(a<.16)return 'highland';if(a<.25)return 'river_valley';if(a<.30)return 'swamp';return 'lowland';}
-  function buildHexRows(size){const dims={small:[7,7],medium:[9,9],large:[11,11]};const [cols,rows]=dims[size]||dims.medium;const out=[];for(let q=0;q<cols;q++){for(let r=0;r<rows;r++){out.push({campaign_id:state.campaign.id,q,r,terrain_type:terrainFor(q,r,cols,rows),terrain_variant:'prototype',rotation:[0,60,120,180,240,300][Math.floor(seeded(r,q)*6)],settlement_type:(q===Math.floor(cols/2)&&r===Math.floor(rows/2))?'capital':null,owner_id:(q===Math.floor(cols/2)&&r===Math.floor(rows/2))?state.user.id:null,special_state:{map_size:size}});}}return out;}
+  function campaignSeed(){let h=2166136261;for(const ch of String(state.campaign?.id||'mighty-empires')){h^=ch.charCodeAt(0);h=Math.imul(h,16777619);}return h>>>0;}
+  function hashNoise(a,b,c=0){let n=(campaignSeed()+Math.imul(a+101,374761393)+Math.imul(b+211,668265263)+Math.imul(c+307,2246822519))>>>0;n^=n>>>13;n=Math.imul(n,1274126177);n^=n>>>16;return(n>>>0)/4294967295;}
+  function key(q,r){return `${q},${r}`;}
+  function neighbours(q,r){const odd=q&1;const ds=odd?[[1,0],[1,1],[0,1],[-1,1],[-1,0],[0,-1]]:[[1,-1],[1,0],[0,1],[-1,0],[-1,-1],[0,-1]];return ds.map(([dq,dr])=>[q+dq,r+dr]);}
+  function inBounds(q,r,cols,rows){return q>=0&&r>=0&&q<cols&&r<rows;}
+  function shuffled(arr,salt){return [...arr].sort((a,b)=>hashNoise(a[0]+salt,a[1],salt)-hashNoise(b[0]+salt,b[1],salt));}
+
+  function createWorld(cols,rows){
+    const world=new Map();
+    const cx=(cols-1)/2,cy=(rows-1)/2;
+
+    // 1. Form one irregular primary landmass with sea concentrated around the rim.
+    for(let q=0;q<cols;q++)for(let r=0;r<rows;r++){
+      const nx=(q-cx)/(Math.max(1,cx));
+      const ny=(r-cy)/(Math.max(1,cy));
+      const radial=Math.sqrt(nx*nx+ny*ny);
+      const edge=Math.min(q,r,cols-1-q,rows-1-r);
+      const broadNoise=(hashNoise(Math.floor(q/2),Math.floor(r/2),7)-.5)*.28;
+      const fineNoise=(hashNoise(q,r,11)-.5)*.18;
+      let landScore=1-radial+broadNoise+fineNoise;
+      if(edge===0)landScore-=.16;
+      if(edge>=2)landScore+=.10;
+      world.set(key(q,r),landScore>.04?'lowland':'sea');
+    }
+
+    // Guarantee a usable interior and some water around the perimeter.
+    const centreQ=Math.round(cx),centreR=Math.round(cy);
+    world.set(key(centreQ,centreR),'lowland');
+    [[0,0],[cols-1,0],[0,rows-1],[cols-1,rows-1]].forEach(([q,r])=>world.set(key(q,r),'sea'));
+
+    // 2. Any land touching the sea becomes coastline.
+    for(let q=0;q<cols;q++)for(let r=0;r<rows;r++){
+      if(world.get(key(q,r))==='sea')continue;
+      if(neighbours(q,r).some(([nq,nr])=>inBounds(nq,nr,cols,rows)&&world.get(key(nq,nr))==='sea'))world.set(key(q,r),'coastal');
+    }
+
+    // 3. Grow 1-2 connected highland ranges in the interior.
+    const interior=[];
+    for(let q=1;q<cols-1;q++)for(let r=1;r<rows-1;r++)if(world.get(key(q,r))==='lowland')interior.push([q,r]);
+    const rangeCount=Math.max(1,Math.round(cols/6));
+    for(let range=0;range<rangeCount;range++){
+      if(!interior.length)break;
+      const seedIndex=Math.floor(hashNoise(range,cols+rows,23)*interior.length);
+      let [q,r]=interior[seedIndex];
+      const length=Math.max(3,Math.round(cols*.55));
+      for(let step=0;step<length;step++){
+        if(world.get(key(q,r))==='lowland')world.set(key(q,r),'highland');
+        const options=shuffled(neighbours(q,r).filter(([nq,nr])=>inBounds(nq,nr,cols,rows)&&world.get(key(nq,nr))==='lowland'),range*31+step);
+        if(!options.length)break;
+        const towardCentre=options.sort((a,b)=>{
+          const da=Math.abs(a[0]-cx)+Math.abs(a[1]-cy),db=Math.abs(b[0]-cx)+Math.abs(b[1]-cy);
+          const wander=(hashNoise(step,range,37)-.5)*2;
+          return (da+wander)-(db-wander);
+        });
+        [q,r]=towardCentre[Math.min(towardCentre.length-1,Math.floor(hashNoise(step,range,41)*Math.min(3,towardCentre.length)))];
+        if(hashNoise(q,r,43)<.38){
+          for(const [bq,br] of shuffled(neighbours(q,r),step).slice(0,2))if(inBounds(bq,br,cols,rows)&&world.get(key(bq,br))==='lowland'&&hashNoise(bq,br,47)<.48)world.set(key(bq,br),'highland');
+        }
+      }
+    }
+
+    // 4. Run river valleys from highlands downhill to the nearest coast.
+    const highlands=[];
+    for(let q=0;q<cols;q++)for(let r=0;r<rows;r++)if(world.get(key(q,r))==='highland')highlands.push([q,r]);
+    const riverCount=Math.max(1,Math.round(cols/5));
+    for(let river=0;river<riverCount&&highlands.length;river++){
+      let [q,r]=highlands[Math.floor(hashNoise(river,rows,53)*highlands.length)];
+      const visited=new Set([key(q,r)]);
+      for(let step=0;step<cols+rows;step++){
+        const current=world.get(key(q,r));
+        if(current==='coastal'||current==='sea')break;
+        const options=neighbours(q,r).filter(([nq,nr])=>inBounds(nq,nr,cols,rows)&&!visited.has(key(nq,nr))&&world.get(key(nq,nr))!=='highland');
+        if(!options.length)break;
+        const coastDistance=([x,y])=>{
+          let best=999;
+          for(let cq=0;cq<cols;cq++)for(let cr=0;cr<rows;cr++)if(world.get(key(cq,cr))==='coastal')best=Math.min(best,Math.abs(cq-x)+Math.abs(cr-y));
+          return best;
+        };
+        options.sort((a,b)=>coastDistance(a)-coastDistance(b)+(hashNoise(a[0]+step,a[1],59)-hashNoise(b[0]+step,b[1],59))*.8);
+        [q,r]=options[0];visited.add(key(q,r));
+        if(world.get(key(q,r))==='lowland')world.set(key(q,r),'river_valley');
+        if(world.get(key(q,r))==='coastal')break;
+      }
+    }
+
+    // 5. Add only a few small swamp pockets, away from highlands and sea.
+    for(let q=1;q<cols-1;q++)for(let r=1;r<rows-1;r++){
+      if(world.get(key(q,r))!=='lowland'||hashNoise(q,r,67)>.055)continue;
+      const ns=neighbours(q,r).map(([nq,nr])=>world.get(key(nq,nr)));
+      if(!ns.includes('sea')&&!ns.includes('highland'))world.set(key(q,r),'swamp');
+    }
+
+    return world;
+  }
+
+  function buildHexRows(size){
+    const dims={small:[7,7],medium:[9,9],large:[11,11]};
+    const [cols,rows]=dims[size]||dims.medium;
+    const world=createWorld(cols,rows);
+    const centre=[Math.floor(cols/2),Math.floor(rows/2)];
+    let capital=centre;
+    if(!['lowland','river_valley'].includes(world.get(key(...capital)))){
+      const candidates=[];
+      for(let q=0;q<cols;q++)for(let r=0;r<rows;r++)if(['lowland','river_valley'].includes(world.get(key(q,r))))candidates.push([q,r]);
+      candidates.sort((a,b)=>(Math.abs(a[0]-centre[0])+Math.abs(a[1]-centre[1]))-(Math.abs(b[0]-centre[0])+Math.abs(b[1]-centre[1])));
+      if(candidates.length)capital=candidates[0];
+    }
+    const out=[];
+    for(let q=0;q<cols;q++)for(let r=0;r<rows;r++){
+      const isCapital=q===capital[0]&&r===capital[1];
+      out.push({campaign_id:state.campaign.id,q,r,terrain_type:world.get(key(q,r)),terrain_variant:'generated-v2',rotation:[0,60,120,180,240,300][Math.floor(hashNoise(q,r,71)*6)],settlement_type:isCapital?'capital':null,owner_id:isCapital?state.user.id:null,special_state:{map_size:size,generator:'coherent-v2'}});
+    }
+    return out;
+  }
 
   async function generateMap(size,button){button.disabled=true;button.textContent='Generating…';try{const rows=buildHexRows(size);const {error}=await window.whrSupabase.from('mighty_empire_hexes').insert(rows);if(error)throw error;await loadHexes();render();}catch(err){showError(err.message||String(err));button.disabled=false;button.textContent='Generate Map';}}
   function showError(msg){const body=document.getElementById('meBody');if(body)body.innerHTML=`<div class="me-setup"><h3>Unable to load Mighty Empires</h3><div class="me-error">${esc(msg)}</div><p>If the error mentions a missing table, run <strong>supabase/013_mighty_empires.sql</strong> against the Dev Supabase project.</p></div>`;}
 
-  function renderSetup(){const body=document.getElementById('meBody');body.innerHTML=`<section class="me-setup"><div class="eyebrow">Campaign Map</div><h3>Create the realm</h3><p>This campaign does not have a map yet. Generate the first persistent hex map. The hexes will be stored in Supabase and everyone in this campaign will see the same map.</p>${isOwner()?`<div class="me-setup-grid"><label>Map size<select id="meMapSize"><option value="small">Small — 7 × 7</option><option value="medium" selected>Medium — 9 × 9</option><option value="large">Large — 11 × 11</option></select></label></div><button id="meGenerate" class="me-btn" type="button">Generate Map</button><div class="me-status">Terrain is deliberately provisional while we build the painted tile library and intelligent terrain connections.</div>`:`<div class="me-empty">The campaign owner needs to generate the map first.</div>`}</section>`;body.className='me-layout';document.getElementById('meGenerate')?.addEventListener('click',e=>generateMap(document.getElementById('meMapSize').value,e.currentTarget));}
+  function renderSetup(){const body=document.getElementById('meBody');body.innerHTML=`<section class="me-setup"><div class="eyebrow">Campaign Map</div><h3>Create the realm</h3><p>This campaign does not have a map yet. Generate the first persistent hex map. The hexes will be stored in Supabase and everyone in this campaign will see the same map.</p>${isOwner()?`<div class="me-setup-grid"><label>Map size<select id="meMapSize"><option value="small">Small — 7 × 7</option><option value="medium" selected>Medium — 9 × 9</option><option value="large">Large — 11 × 11</option></select></label></div><button id="meGenerate" class="me-btn" type="button">Generate Map</button><div class="me-status">The generator now creates a coherent landmass with coastline, connected highlands and rivers running toward the coast. Terrain artwork is still provisional.</div>`:`<div class="me-empty">The campaign owner needs to generate the map first.</div>`}</section>`;body.className='me-layout';document.getElementById('meGenerate')?.addEventListener('click',e=>generateMap(document.getElementById('meMapSize').value,e.currentTarget));}
 
   function applyTransform(){const map=document.getElementById('meMap');if(map)map.style.transform=`translate(${state.x}px,${state.y}px) scale(${state.scale}) translate(-50%,-50%)`;}
   function resetView(){state.scale=.86;state.x=0;state.y=0;applyTransform();}
