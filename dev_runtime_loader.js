@@ -27,7 +27,7 @@
       add('dev_cloud_saves.js?v=3',()=>{
         add('dev_landing_armies.js?v=1',()=>{
           const next=()=>{
-            const files=['dev_retention.js?v=1','dev_shared_armies.js?v=3','dev_campaigns.js?v=2','dev_campaign_armies.js?v=1','dev_campaign_territories.js?v=1','dev_territory_permissions.js?v=1','dev_territory_random_server.js?v=1','dev_territory_specific_create.js?v=1','dev_campaign_delete.js?v=1','dev_campaign_dialog_guard.js?v=1','dev_mighty_empires_manual_builder.js?v=1','dev_modal_close.js?v=1'];
+            const files=['dev_retention.js?v=1','dev_shared_armies.js?v=3','dev_campaigns.js?v=2','dev_campaign_armies.js?v=1','dev_campaign_territories.js?v=1','dev_territory_permissions.js?v=1','dev_territory_random_server.js?v=1','dev_territory_specific_create.js?v=1','dev_campaign_delete.js?v=1','dev_campaign_dialog_guard.js?v=1','dev_mighty_empires_manual_builder.js?v=2','dev_modal_close.js?v=1'];
             const load=i=>{if(i>=files.length)return;add(files[i],()=>load(i+1),()=>{console.warn(`${files[i]} failed to load; continuing.`);load(i+1);});};load(0);
           };
           add('dev_privacy_account.js?v=3',next,()=>{console.warn('dev_privacy_account.js failed to load; continuing.');next();});
