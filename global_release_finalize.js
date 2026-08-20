@@ -85,13 +85,19 @@
                               campaignDialogGuard.async = false;
                               campaignDialogGuard.onload = () => {
                                 const mightyEmpiresScript = document.createElement("script");
-                                mightyEmpiresScript.src = "dev_mighty_empires.js?v=1";
+                                mightyEmpiresScript.src = "dev_mighty_empires.js?v=2";
                                 mightyEmpiresScript.async = false;
                                 mightyEmpiresScript.onload = () => {
-                                  const modalCloseScript = document.createElement("script");
-                                  modalCloseScript.src = "dev_modal_close.js?v=1";
-                                  modalCloseScript.async = false;
-                                  document.body.appendChild(modalCloseScript);
+                                  const mightyEmpiresDeleteScript = document.createElement("script");
+                                  mightyEmpiresDeleteScript.src = "dev_mighty_empires_delete_map.js?v=1";
+                                  mightyEmpiresDeleteScript.async = false;
+                                  mightyEmpiresDeleteScript.onload = () => {
+                                    const modalCloseScript = document.createElement("script");
+                                    modalCloseScript.src = "dev_modal_close.js?v=1";
+                                    modalCloseScript.async = false;
+                                    document.body.appendChild(modalCloseScript);
+                                  };
+                                  document.body.appendChild(mightyEmpiresDeleteScript);
                                 };
                                 document.body.appendChild(mightyEmpiresScript);
                               };
