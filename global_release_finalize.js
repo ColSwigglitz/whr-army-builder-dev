@@ -84,22 +84,25 @@
                               campaignDialogGuard.src = "dev_campaign_dialog_guard.js?v=1";
                               campaignDialogGuard.async = false;
                               campaignDialogGuard.onload = () => {
-                                const mightyEmpiresScript = document.createElement("script");
-                                mightyEmpiresScript.src = "dev_mighty_empires.js?v=2";
-                                mightyEmpiresScript.async = false;
-                                mightyEmpiresScript.onload = () => {
-                                  const mightyEmpiresDeleteScript = document.createElement("script");
-                                  mightyEmpiresDeleteScript.src = "dev_mighty_empires_delete_map.js?v=1";
-                                  mightyEmpiresDeleteScript.async = false;
-                                  mightyEmpiresDeleteScript.onload = () => {
+                                // Load the delete-map listener BEFORE the Mighty Empires opener.
+                                // The opener stops immediate propagation on campaign clicks, so a
+                                // listener loaded afterwards cannot capture the campaign id.
+                                const mightyEmpiresDeleteScript = document.createElement("script");
+                                mightyEmpiresDeleteScript.src = "dev_mighty_empires_delete_map.js?v=2";
+                                mightyEmpiresDeleteScript.async = false;
+                                mightyEmpiresDeleteScript.onload = () => {
+                                  const mightyEmpiresScript = document.createElement("script");
+                                  mightyEmpiresScript.src = "dev_mighty_empires.js?v=2";
+                                  mightyEmpiresScript.async = false;
+                                  mightyEmpiresScript.onload = () => {
                                     const modalCloseScript = document.createElement("script");
                                     modalCloseScript.src = "dev_modal_close.js?v=1";
                                     modalCloseScript.async = false;
                                     document.body.appendChild(modalCloseScript);
                                   };
-                                  document.body.appendChild(mightyEmpiresDeleteScript);
+                                  document.body.appendChild(mightyEmpiresScript);
                                 };
-                                document.body.appendChild(mightyEmpiresScript);
+                                document.body.appendChild(mightyEmpiresDeleteScript);
                               };
                               document.body.appendChild(campaignDialogGuard);
                             };
