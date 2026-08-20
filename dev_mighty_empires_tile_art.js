@@ -13,8 +13,8 @@
   function installStyles(){
     if(document.getElementById('meLocalTileStyles'))return;
     const s=document.createElement('style');s.id='meLocalTileStyles';s.textContent=`
-      .me-hex{width:104px!important;height:90px!important;overflow:hidden!important;clip-path:polygon(25% 0,75% 0,100% 50%,75% 100%,25% 100%,0 50%)!important}
-      .me-tile-image{position:absolute;inset:0;width:100%;height:100%;display:block;z-index:0;pointer-events:none;transform-origin:50% 50%}
+      .me-hex{width:104px!important;height:90px!important;overflow:hidden!important;clip-path:polygon(25% 0,75% 0,100% 50%,75% 100%,25% 100%,0 50%)!important;border:0!important}
+      .me-tile-image{position:absolute;inset:0;width:104px;height:90px;display:block;z-index:0;pointer-events:none;transform-origin:52px 45px}
       .me-hex.coastal{background:#9fcbd5!important}
       .me-hex .me-hex-label,.me-hex .me-feature{position:relative;z-index:3}
       .me-rotate-tile{margin-top:8px;width:100%}
@@ -62,11 +62,23 @@
     const btn=document.createElement('button');btn.id='meRotateTile';btn.className='me-btn secondary me-rotate-tile';btn.type='button';btn.textContent='Rotate Tile 60°';
     btn.onclick=async()=>{btn.disabled=true;const next=((Number(h.rotation)||0)+60)%360;const {error}=await window.whrSupabase.from('mighty_empire_hexes').update({rotation:next,updated_at:new Date().toISOString()}).eq('id',h.id);if(error){alert(`Unable to rotate tile: ${error.message}`);btn.disabled=false;return;}h.rotation=next;await decorate();};side.appendChild(btn);
   }
+
+  function captureCampaign(event){
+    const button=event.target.closest?.('[data-open-campaign]');
+    const card=button?.closest?.('.campaign-card');
+    if(!button?.dataset?.openCampaign||!card?.textContent?.includes('Mighty Empires'))return;
+    campaignId=button.dataset.openCampaign;hexes=[];
+    // The core Mighty Empires click handler opens and renders the dialog first.
+    setTimeout(loadHexes,120);
+  }
+
   function hook(){
     installStyles();
-    const original=window.whrOpenMightyEmpires;if(typeof original!=='function'||original.__tileHooked)return;
-    const wrapped=async function(id){campaignId=id;hexes=[];const result=await original(id);setTimeout(loadHexes,0);return result;};wrapped.__tileHooked=true;window.whrOpenMightyEmpires=wrapped;
-    document.addEventListener('click',e=>{if(e.target.closest?.('#meReload'))setTimeout(loadHexes,80);if(e.target.closest?.('#meMap .me-hex'))setTimeout(installRotate,0);});
+    document.addEventListener('click',captureCampaign,true);
+    document.addEventListener('click',e=>{
+      if(e.target.closest?.('#meReload'))setTimeout(loadHexes,120);
+      if(e.target.closest?.('#meMap .me-hex'))setTimeout(installRotate,0);
+    });
   }
   hook();
 })();
