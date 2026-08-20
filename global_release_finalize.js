@@ -42,6 +42,11 @@
   const authStyle = document.createElement("link"); authStyle.rel = "stylesheet"; authStyle.href = "dev_auth.css?v=1"; document.head.appendChild(authStyle);
   const authScript = document.createElement("script"); authScript.src = "dev_auth.js?v=3"; authScript.async = false;
   authScript.onload = () => {
+    const authDedupeScript = document.createElement("script");
+    authDedupeScript.src = "dev_auth_getuser_dedupe.js?v=2";
+    authDedupeScript.async = false;
+    document.body.appendChild(authDedupeScript);
+
     const visibilityPatch = document.createElement("script"); visibilityPatch.src = "dev_cloud_visibility_preserve.js?v=1"; visibilityPatch.async = false;
     visibilityPatch.onload = () => {
       const cloudSaveScript = document.createElement("script"); cloudSaveScript.src = "dev_cloud_saves.js?v=3"; cloudSaveScript.async = false;
@@ -84,9 +89,6 @@
                               campaignDialogGuard.src = "dev_campaign_dialog_guard.js?v=1";
                               campaignDialogGuard.async = false;
                               campaignDialogGuard.onload = () => {
-                                // Load the delete-map listener BEFORE the Mighty Empires opener.
-                                // The opener stops immediate propagation on campaign clicks, so a
-                                // listener loaded afterwards cannot capture the campaign id.
                                 const mightyEmpiresDeleteScript = document.createElement("script");
                                 mightyEmpiresDeleteScript.src = "dev_mighty_empires_delete_map.js?v=2";
                                 mightyEmpiresDeleteScript.async = false;
