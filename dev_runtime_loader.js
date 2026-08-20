@@ -1,4 +1,4 @@
-// Stable Dev runtime loader. Mirrors the release-finalize loader chain but uses a Dev-specific filename so GitHub Pages cache/deploy issues cannot strand the campaign modules.
+// Stable Dev runtime loader.
 (() => {
   const previousAllowedMagicItems = getAllowedMagicItems;
   getAllowedMagicItems = function(unit, context) {
@@ -9,7 +9,6 @@
     if (selectedArmour) items = items.filter(item => item.category !== "magic_armour" || item.id === selectedArmour);
     return [...new Map(items.map(item => [item.id, item])).values()];
   };
-
   const previousSelectArmy = selectArmy;
   selectArmy = async function(armyId) {
     await previousSelectArmy(armyId);
@@ -17,20 +16,18 @@
     if (typeof window.whrApplyEffectiveRegimentMinimums === "function") window.whrApplyEffectiveRegimentMinimums();
     renderUnitBrowser(); renderArmy();
   };
-
   const add=(src,onload,onerror)=>{const s=document.createElement('script');s.src=src;s.async=false;if(onload)s.onload=onload;if(onerror)s.onerror=onerror;document.body.appendChild(s);return s;};
   add('chaos_daemon_regiment_items.js?v=1');
   add('dogs_of_war_regiments_of_renown.js?v=1');
   add('general_system.js?v=2',()=>add('general_overrides.js?v=1'));
   const style=document.createElement('link');style.rel='stylesheet';style.href='dev_auth.css?v=1';document.head.appendChild(style);
-
   add('dev_auth.js?v=3',()=>{
     add('dev_auth_getuser_dedupe.js?v=2');
     add('dev_cloud_visibility_preserve.js?v=1',()=>{
       add('dev_cloud_saves.js?v=3',()=>{
         add('dev_landing_armies.js?v=1',()=>{
           const next=()=>{
-            const files=['dev_retention.js?v=1','dev_shared_armies.js?v=3','dev_campaigns.js?v=2','dev_campaign_armies.js?v=1','dev_campaign_territories.js?v=1','dev_territory_permissions.js?v=1','dev_territory_random_server.js?v=1','dev_territory_specific_create.js?v=1','dev_campaign_delete.js?v=1','dev_campaign_dialog_guard.js?v=1','dev_mighty_empires_delete_map.js?v=2','dev_mighty_empires.js?v=2','dev_mighty_empires_starting_realms.js?v=1','dev_mighty_empires_tile_art.js?v=3','dev_modal_close.js?v=1'];
+            const files=['dev_retention.js?v=1','dev_shared_armies.js?v=3','dev_campaigns.js?v=2','dev_campaign_armies.js?v=1','dev_campaign_territories.js?v=1','dev_territory_permissions.js?v=1','dev_territory_random_server.js?v=1','dev_territory_specific_create.js?v=1','dev_campaign_delete.js?v=1','dev_campaign_dialog_guard.js?v=1','dev_mighty_empires_delete_map.js?v=2','dev_mighty_empires.js?v=2','dev_mighty_empires_tile_art.js?v=4','dev_modal_close.js?v=1'];
             const load=i=>{if(i>=files.length)return;add(files[i],()=>load(i+1),()=>{console.warn(`${files[i]} failed to load; continuing.`);load(i+1);});};load(0);
           };
           add('dev_privacy_account.js?v=3',next,()=>{console.warn('dev_privacy_account.js failed to load; continuing.');next();});
