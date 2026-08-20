@@ -1,7 +1,6 @@
 // Mighty Empires development: local coastal artwork renderer.
-// Coastline is derived from the rendered map. Each artwork tile is rendered as
-// an SVG view into the local source sheet so the full scanned hex can rotate
-// cleanly without the sprite crop sliding out of the visible hex.
+// Coastline is derived from the rendered map. Each coastal hex gets a cropped
+// source-sheet tile which completely replaces the old CSS terrain fill.
 (() => {
   const BASE='assets/mighty-empires/coastal/source/';
   const SHEETS={1:`${BASE}coastal_set_1.jpg`,2:`${BASE}coastal_set_2.jpg`};
@@ -15,9 +14,10 @@
     s.id='meLocalTileStyles';
     s.textContent=`
       .me-hex{width:104px!important;height:90px!important;overflow:hidden!important;clip-path:polygon(25% 0,75% 0,100% 50%,75% 100%,25% 100%,0 50%)!important;border:0!important;position:absolute!important}
-      .me-tile-art{position:absolute;inset:0;width:104px;height:90px;display:block;z-index:0;pointer-events:none;transform-origin:52px 45px;overflow:visible}
-      .me-hex.has-coastal-art{background:#9fcbd5!important}
-      .me-hex .me-hex-label,.me-hex .me-feature{position:relative;z-index:3}
+      .me-hex.has-coastal-art{background:none!important;background-image:none!important}
+      .me-tile-art{position:absolute;inset:0;width:104px;height:90px;display:block;z-index:1;pointer-events:none;overflow:hidden;transform-origin:52px 45px}
+      .me-tile-crop{position:absolute;inset:0;width:104px;height:90px;display:block;background-repeat:no-repeat;background-color:#9fcbd5}
+      .me-hex .me-hex-label,.me-hex .me-feature{position:relative;z-index:4}
     `;
     document.head.appendChild(s);
   }
@@ -37,23 +37,20 @@
   function hash(q,r){let n=((q+17)*73856093)^((r+31)*19349663);n^=n>>>13;return Math.abs(n>>>0);}
 
   function makeTileArt(tile,rotation){
-    const NS='http://www.w3.org/2000/svg';
-    const svg=document.createElementNS(NS,'svg');
-    svg.classList.add('me-tile-art');
-    svg.dataset.tile=tile.id;
-    svg.setAttribute('viewBox',`${tile.cx-82} ${tile.cy-71} 164 142`);
-    svg.setAttribute('preserveAspectRatio','xMidYMid slice');
-    svg.setAttribute('aria-hidden','true');
-    svg.style.transform=`rotate(${rotation}deg)`;
-    const image=document.createElementNS(NS,'image');
-    image.setAttribute('href',SHEETS[tile.set]);
-    image.setAttribute('x','0');
-    image.setAttribute('y','0');
-    image.setAttribute('width','504');
-    image.setAttribute('height','713');
-    image.setAttribute('preserveAspectRatio','none');
-    svg.appendChild(image);
-    return svg;
+    const scaleX=104/164;
+    const scaleY=90/142;
+    const art=document.createElement('span');
+    art.className='me-tile-art';
+    art.dataset.tile=tile.id;
+    art.style.transform=`rotate(${rotation}deg)`;
+
+    const crop=document.createElement('span');
+    crop.className='me-tile-crop';
+    crop.style.backgroundImage=`url("${SHEETS[tile.set]}")`;
+    crop.style.backgroundSize=`${504*scaleX}px ${713*scaleY}px`;
+    crop.style.backgroundPosition=`${52-(tile.cx*scaleX)}px ${45-(tile.cy*scaleY)}px`;
+    art.appendChild(crop);
+    return art;
   }
 
   function decorate(){
