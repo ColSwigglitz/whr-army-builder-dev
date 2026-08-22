@@ -72,7 +72,7 @@
 
   renderRegimentEditor = function(entry, unit) {
     let html = withSelectedChampion(entry, unit, () => previousRenderRegimentEditor(entry, unit));
-    if (!isTombGuards(unit) || !entry.champion?.selected) return html;
+    if (!isTombGuards(unit)) return html;
 
     const choice = selectedChampion(entry).id;
     const selector = `
@@ -82,7 +82,7 @@
           <option value="tomb_champion" ${choice === "tomb_champion" ? "selected" : ""}>Tomb Champion (30 pts + one Tomb Guard)</option>
           <option value="mummy_champion" ${choice === "mummy_champion" ? "selected" : ""}>Mummy Champion (60 pts)</option>
         </select>
-        <div class="field-hint">Choose one champion for the regiment. The Mummy Champion has light armour and a double handed weapon.</div>
+        <div class="field-hint">Choose which champion type to add, then tick the champion checkbox below. The Mummy Champion has light armour and a double handed weapon.</div>
       </div>
     `;
 
