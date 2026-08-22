@@ -99,7 +99,7 @@ for name in SOURCES:
 index_path = ROOT / "index.html"
 index = index_path.read_text(encoding="utf-8")
 index = re.sub(r'<script\s+src="[^"]+"\s*></script>', '', index)
-index = index.replace("</body>", '<script src="dev_bundle.js?v=1"></script>\n</body>')
+index = index.replace("</body>", '<script src="dev_bundle.js?v=2"></script>\n</body>')
 index_path.write_text(index, encoding="utf-8")
 
 print(f"Built dev_bundle.js from {len(SOURCES)} source files")
