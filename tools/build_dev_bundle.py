@@ -64,6 +64,7 @@ SOURCES = [
     "special_character_magic_fixes.js",
     "special_character_mount_fixes.js",
     "roster_interactions.js",
+    "unit_model_count.js",
     "unit_scrollbar.js",
     "roster_pad_sort.js",
     "roster_pad_layout_fix.js",
