@@ -30,7 +30,7 @@
   const add=(src,onload,onerror)=>{const s=document.createElement('script');s.src=src;s.async=false;if(onload)s.onload=onload;if(onerror)s.onerror=onerror;document.body.appendChild(s);return s;};
   add('chaos_daemon_regiment_items.js?v=1');
   add('dogs_of_war_regiments_of_renown.js?v=1');
-  add('general_system.js?v=2',()=>add('general_overrides.js?v=1'));
+  add('general_system.js?v=2',()=>add('general_overrides.js?v=1',()=>add('dev_roster_pad_sort.js?v=1')));
   const style=document.createElement('link');style.rel='stylesheet';style.href='dev_auth.css?v=1';document.head.appendChild(style);
   add('dev_auth.js?v=3',()=>{
     add('dev_auth_getuser_dedupe.js?v=2');
