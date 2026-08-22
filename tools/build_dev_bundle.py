@@ -63,6 +63,7 @@ SOURCES = [
     "global_consistency_fixes.js",
     "special_character_magic_fixes.js",
     "special_character_mount_fixes.js",
+    "tomb_kings_champion_fix.js",
     "roster_interactions.js",
     "unit_model_count.js",
     "unit_scrollbar.js",
