@@ -116,8 +116,8 @@ body {
 .roster-card { border-left: 3px solid #8c774e; background: #fffdf8; }
 
 .button, .header-button, .edit-button, .remove-button, .back-armies-button { border-radius: 3px; letter-spacing: .02em; }
-.button-primary, .header-button-primary { background: linear-gradient(180deg, #84271f, #641b16); border-color: #46110e; }
-.button-primary:hover, .header-button-primary:hover { background: #50130f; }
+.button-primary, .header-button-primary { color: #fff; background: linear-gradient(180deg, #84271f, #641b16); border-color: #46110e; }
+.button-primary:hover, .header-button-primary:hover { color: #fff; background: #50130f; }
 .button-secondary, .edit-button { background: #f7f0e2; border-color: #b9a478; }
 .eyebrow { color: var(--whr-crimson); }
 .magic-counter, .unit-model-count { border-radius: 2px; background: #e9dfca; color: #4d3d26; }
