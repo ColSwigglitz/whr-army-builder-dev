@@ -27,6 +27,17 @@
     -webkit-overflow-scrolling: touch;
     scrollbar-width: auto;
     scrollbar-color: #765a2f #e5dac5;
+    box-sizing: border-box;
+  }
+
+  /* Give the roster a definite scrollable tail so the final card/actions can
+     clear the phone's bottom browser/gesture area instead of appearing cut off. */
+  .roster-panel {
+    scroll-padding-bottom: max(56px, calc(env(safe-area-inset-bottom) + 28px));
+  }
+
+  .roster-panel .roster {
+    padding-bottom: max(72px, calc(env(safe-area-inset-bottom) + 44px));
   }
 
   /* Reinforce the otherwise very subtle mobile/Chromium scroll indicators.
