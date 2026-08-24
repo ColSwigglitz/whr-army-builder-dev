@@ -6,6 +6,8 @@
  * index.html.
  */
 
+@import url("mobile_split_test.css?v=1");
+
 :root {
   --whr-ink: #171716;
   --whr-charcoal: #22211f;
