@@ -1,0 +1,67 @@
+name: DEV regression and security
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  regression-security:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Rebuild generated JavaScript
+        run: python tools/build_dev_bundle.py
+
+      - name: Verify generated bundles are committed
+        run: git diff --exit-code -- index.html dev_startup_bundle.js dev_army_bundle.js dev_account_bundle.js dev_campaign_bundle.js
+
+      - name: Syntax-check JavaScript sources and bundles
+        run: |
+          find . -maxdepth 1 -name '*.js' -print0 | xargs -0 -n1 node --check
+          node --check dev_startup_bundle.js
+          node --check dev_army_bundle.js
+          node --check dev_account_bundle.js
+          node --check dev_campaign_bundle.js
+
+      - name: Validate army data, assets and basic security invariants
+        run: python tests/validate_repo.py
+
+      - name: Install browser test tooling
+        run: |
+          python -m pip install --disable-pip-version-check playwright
+          python -m playwright install --with-deps chromium
+
+      - name: Start local web server
+        run: |
+          python -m http.server 8000 --bind 127.0.0.1 > /tmp/whr-http.log 2>&1 &
+          echo $! > /tmp/whr-http.pid
+          sleep 2
+
+      - name: Browser smoke test every available army
+        run: python tests/smoke_browser.py
+
+      - name: Scan repository for leaked secrets
+        uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Upload local server log on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: whr-dev-test-server-log
+          path: /tmp/whr-http.log
