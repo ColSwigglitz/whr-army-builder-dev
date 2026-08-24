@@ -11,11 +11,8 @@
     align-items: start;
   }
 
-  /* Both halves of the split builder are independent viewport-height scroll
-     regions. This makes it possible to browse the army book without losing
-     the user's place in the roster (and vice versa). */
-  .unit-browser,
-  .roster-panel {
+  /* Left side remains a single independent scroll region. */
+  .unit-browser {
     position: sticky;
     top: 6px;
     height: calc(100dvh - 12px);
@@ -30,32 +27,55 @@
     box-sizing: border-box;
   }
 
-  /* Give the roster a definite scrollable tail so the final card/actions can
-     clear the phone's bottom browser/gesture area instead of appearing cut off. */
+  /* The right panel itself is no longer the scrolling element. Reordering a
+     regiment re-renders #roster, and some mobile browsers were leaving the
+     parent panel with stale scroll metrics afterwards. Keep the fixed header
+     and army-status area in the panel, and make #roster the scroll region so
+     its scroll height is recalculated naturally every time it is re-rendered. */
   .roster-panel {
-    scroll-padding-bottom: max(56px, calc(env(safe-area-inset-bottom) + 28px));
+    position: sticky;
+    top: 6px;
+    height: calc(100dvh - 12px);
+    max-height: calc(100dvh - 12px);
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    box-sizing: border-box;
+  }
+
+  .roster-panel > .panel-header,
+  .roster-panel > .army-status {
+    flex: 0 0 auto;
   }
 
   .roster-panel .roster {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow-x: hidden;
+    overflow-y: scroll;
+    overscroll-behavior: contain;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: auto;
+    scrollbar-color: #765a2f #e5dac5;
+    scroll-padding-bottom: max(56px, calc(env(safe-area-inset-bottom) + 28px));
     padding-bottom: max(72px, calc(env(safe-area-inset-bottom) + 44px));
   }
 
-  /* Reinforce the otherwise very subtle mobile/Chromium scroll indicators.
-     The darker thumb and parchment track make it obvious that each half can
-     be scrolled independently. */
+  /* Reinforce the otherwise very subtle mobile/Chromium scroll indicators. */
   .unit-browser::-webkit-scrollbar,
-  .roster-panel::-webkit-scrollbar {
+  .roster-panel .roster::-webkit-scrollbar {
     width: 10px;
   }
 
   .unit-browser::-webkit-scrollbar-track,
-  .roster-panel::-webkit-scrollbar-track {
+  .roster-panel .roster::-webkit-scrollbar-track {
     background: #e5dac5;
     border-left: 1px solid #c6b28b;
   }
 
   .unit-browser::-webkit-scrollbar-thumb,
-  .roster-panel::-webkit-scrollbar-thumb {
+  .roster-panel .roster::-webkit-scrollbar-thumb {
     min-height: 48px;
     background: #8a6a36;
     border: 2px solid #e5dac5;
@@ -63,7 +83,7 @@
   }
 
   .unit-browser::-webkit-scrollbar-thumb:active,
-  .roster-panel::-webkit-scrollbar-thumb:active {
+  .roster-panel .roster::-webkit-scrollbar-thumb:active {
     background: #604820;
   }
 
