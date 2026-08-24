@@ -20,19 +20,20 @@ jobs:
 
       - name: Validate JavaScript syntax
         run: |
-          node --check dev_core_bundle.js
+          node --check dev_startup_bundle.js
+          node --check dev_army_bundle.js
           node --check dev_account_bundle.js
           node --check dev_campaign_bundle.js
 
       - name: Commit generated bundles
         run: |
-          FILES="index.html dev_core_bundle.js dev_account_bundle.js dev_campaign_bundle.js"
-          if git diff --quiet -- $FILES && [ -f dev_core_bundle.js ] && [ -f dev_account_bundle.js ] && [ -f dev_campaign_bundle.js ]; then
+          FILES="index.html dev_startup_bundle.js dev_army_bundle.js dev_account_bundle.js dev_campaign_bundle.js"
+          if git diff --quiet -- $FILES && [ -f dev_startup_bundle.js ] && [ -f dev_army_bundle.js ] && [ -f dev_account_bundle.js ] && [ -f dev_campaign_bundle.js ]; then
             echo "Bundles already up to date"
             exit 0
           fi
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add $FILES
-          git commit -m "Build split dev JavaScript bundles [bundle]"
+          git commit -m "Build lazy dev JavaScript bundles [bundle]"
           git push
