@@ -36,9 +36,7 @@ for required in ['dev_startup_bundle.js','dev_account_bundle.js','dev_campaign_b
 if 'dev_bundle.js' in index or 'dev_core_bundle.js' in index:
     fail('index.html references an obsolete bundle')
 
-# Referenced local JS/CSS files must exist.
-for attr,path in re.findall(r'(?:src|href)=["\']([^"\']+)["\']', index):
-    pass
+# Referenced local JS/CSS/images must exist.
 for path in re.findall(r'(?:src|href)=["\']([^"\']+)["\']', index):
     clean=path.split('?')[0].split('#')[0]
     if clean.startswith(('http://','https://','mailto:','#')) or not clean:
