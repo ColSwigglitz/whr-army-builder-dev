@@ -3,7 +3,19 @@ import re
 
 ROOT = Path(__file__).resolve().parents[1]
 
-CORE_SOURCES = [
+# Keep initial page startup deliberately small. This is enough to fetch and
+# render data/armies.json, provide the loading overlay, and install the dev
+# wrappers. The heavier army-specific rules are loaded after the army cards
+# have rendered.
+STARTUP_SOURCES = [
+    "app.js",
+    "dev_startup_gate.js",
+    "army_loading.js",
+    "dev_runtime_loader.js",
+    "dev_branding.js",
+]
+
+ARMY_SOURCES = [
     "bootstrap.js",
     "chaos_dwarfs_payload_loader.js",
     "wood_elves_loader.js",
@@ -13,7 +25,6 @@ CORE_SOURCES = [
     "kislev_loader.js",
     "norse_loader.js",
     "slann_empire_loader.js",
-    "app.js",
     "global_release_rules.js",
     "army_extensions.js",
     "army_extensions_vampire_fix.js",
@@ -72,10 +83,7 @@ CORE_SOURCES = [
     "roster_pad_layout_fix.js",
     "swarm_unit_fixes.js",
     "vampire_wraith_steed_fix.js",
-    "army_loading.js",
     "global_zero_one.js",
-    "dev_runtime_loader.js",
-    "dev_branding.js",
     "chaos_daemon_regiment_items.js",
     "dogs_of_war_regiments_of_renown.js",
     "general_system.js",
@@ -111,7 +119,8 @@ CAMPAIGN_SOURCES = [
 ]
 
 BUNDLES = {
-    "dev_core_bundle.js": CORE_SOURCES,
+    "dev_startup_bundle.js": STARTUP_SOURCES,
+    "dev_army_bundle.js": ARMY_SOURCES,
     "dev_account_bundle.js": ACCOUNT_SOURCES,
     "dev_campaign_bundle.js": CAMPAIGN_SOURCES,
 }
@@ -144,23 +153,74 @@ for filename, sources in BUNDLES.items():
 index_path = ROOT / "index.html"
 index = index_path.read_text(encoding="utf-8")
 
-# Remove old generated bundle tags and any direct application script tags. The
-# three explicit bundles below are the only JS entry points for the dev site.
+# Remove existing generated/external application script tags and the previous
+# lazy-bundle loader block. CSS and inline page markup remain untouched.
 index = re.sub(r'<script\s+src="[^"]+"\s*></script>', '', index)
+index = re.sub(
+    r'<!-- DEV_BUNDLE_LOADER_START -->.*?<!-- DEV_BUNDLE_LOADER_END -->',
+    '',
+    index,
+    flags=re.S,
+)
 
-# Authentication styles were previously injected by dev_runtime_loader.js.
-# Load them directly now that runtime script injection has been removed.
 if 'dev_auth.css' not in index:
     index = index.replace(
         '</head>',
         '  <link rel="stylesheet" href="dev_auth.css?v=1">\n</head>'
     )
 
-bundle_tags = (
-    '<script src="dev_core_bundle.js?v=1"></script>\n'
-    '<script src="dev_account_bundle.js?v=1"></script>\n'
-    '<script src="dev_campaign_bundle.js?v=1"></script>\n'
-)
+bundle_tags = '''<script src="dev_startup_bundle.js?v=1"></script>
+<!-- DEV_BUNDLE_LOADER_START -->
+<script>
+(() => {
+  const loadScript = src => new Promise((resolve, reject) => {
+    const script = document.createElement('script');
+    script.src = src;
+    script.async = false;
+    script.onload = resolve;
+    script.onerror = () => reject(new Error(`Could not load ${src}`));
+    document.body.appendChild(script);
+  });
+
+  const startDeferredBundles = async () => {
+    try {
+      await loadScript('dev_army_bundle.js?v=1');
+      window.whrResolveArmyFeatures?.();
+    } catch (error) {
+      console.error(error);
+      window.whrRejectArmyFeatures?.(error);
+      return;
+    }
+
+    try {
+      await loadScript('dev_account_bundle.js?v=1');
+    } catch (error) {
+      console.warn('Account bundle failed to load; army builder remains available.', error);
+    }
+
+    try {
+      await loadScript('dev_campaign_bundle.js?v=1');
+    } catch (error) {
+      console.warn('Campaign bundle failed to load; army builder remains available.', error);
+    }
+  };
+
+  // Do not parse the large army rule bundle until the tiny army manifest has
+  // rendered. This keeps the landing-page army cards responsive even on a
+  // slower phone or cold-cache request.
+  const waitForArmyCards = () => {
+    if (window.state?.armyManifest || (typeof state !== 'undefined' && state.armyManifest)) {
+      requestAnimationFrame(() => requestAnimationFrame(startDeferredBundles));
+      return;
+    }
+    setTimeout(waitForArmyCards, 25);
+  };
+
+  waitForArmyCards();
+})();
+</script>
+<!-- DEV_BUNDLE_LOADER_END -->
+'''
 index = index.replace("</body>", bundle_tags + "</body>")
 index_path.write_text(index, encoding="utf-8")
 
