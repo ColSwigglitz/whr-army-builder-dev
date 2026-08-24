@@ -1,4 +1,4 @@
-name: Build dev JavaScript bundle
+name: Build dev JavaScript bundles
 
 on:
   push:
@@ -15,17 +15,18 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Build bundle
+      - name: Build bundles
         run: python tools/build_dev_bundle.py
 
-      - name: Commit generated bundle
+      - name: Commit generated bundles
         run: |
-          if git diff --quiet -- index.html dev_bundle.js; then
-            echo "Bundle already up to date"
+          FILES="index.html dev_core_bundle.js dev_account_bundle.js dev_campaign_bundle.js"
+          if git diff --quiet -- $FILES && [ -f dev_core_bundle.js ] && [ -f dev_account_bundle.js ] && [ -f dev_campaign_bundle.js ]; then
+            echo "Bundles already up to date"
             exit 0
           fi
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add index.html dev_bundle.js
-          git commit -m "Build consolidated dev JavaScript bundle [bundle]"
+          git add $FILES
+          git commit -m "Build split dev JavaScript bundles [bundle]"
           git push
