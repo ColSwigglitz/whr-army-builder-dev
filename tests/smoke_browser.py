@@ -8,6 +8,7 @@ with sync_playwright() as p:
     console_errors=[]
     page.on('console', lambda msg: console_errors.append(msg.text) if msg.type=='error' else None)
     page.on('pageerror', lambda err: console_errors.append(str(err)))
+    page.on('dialog', lambda d: d.accept())
 
     page.goto(BASE, wait_until='domcontentloaded', timeout=30000)
     page.wait_for_selector('.army-card.available', timeout=30000)
@@ -30,10 +31,8 @@ with sync_playwright() as p:
                 page.wait_for_selector('#editDialog[open]', timeout=10000)
                 page.locator('#dialogCancelBtn').click()
 
-            # Return without confirmation by clearing the temporary roster first.
+            # Clear the temporary roster, then return to selection.
             page.locator('#clearArmyBtn').click()
-            page.once('dialog', lambda d: d.accept())
-            # Clear may have a confirmation; click again is unnecessary because dialog handler accepts it.
             page.wait_for_timeout(150)
             page.locator('#backToArmiesBtn').click()
             page.wait_for_selector('#armySelectionScreen:not([hidden])', timeout=10000)
@@ -45,7 +44,6 @@ with sync_playwright() as p:
     browser.close()
 
     if console_errors:
-        # Known Supabase/network console noise should not hide application exceptions; report all for review.
         print('Browser console errors:')
         for err in console_errors:
             print(' -', err)
