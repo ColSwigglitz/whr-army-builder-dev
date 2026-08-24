@@ -18,6 +18,12 @@ jobs:
       - name: Build bundles
         run: python tools/build_dev_bundle.py
 
+      - name: Validate JavaScript syntax
+        run: |
+          node --check dev_core_bundle.js
+          node --check dev_account_bundle.js
+          node --check dev_campaign_bundle.js
+
       - name: Commit generated bundles
         run: |
           FILES="index.html dev_core_bundle.js dev_account_bundle.js dev_campaign_bundle.js"
