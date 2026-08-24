@@ -3,7 +3,7 @@ import re
 
 ROOT = Path(__file__).resolve().parents[1]
 
-SOURCES = [
+CORE_SOURCES = [
     "bootstrap.js",
     "chaos_dwarfs_payload_loader.js",
     "wood_elves_loader.js",
@@ -75,32 +75,96 @@ SOURCES = [
     "army_loading.js",
     "global_zero_one.js",
     "dev_runtime_loader.js",
+    "dev_branding.js",
+    "chaos_daemon_regiment_items.js",
+    "dogs_of_war_regiments_of_renown.js",
+    "general_system.js",
+    "general_overrides.js",
+    "dev_roster_pad_sort.js",
+]
+
+ACCOUNT_SOURCES = [
+    "dev_auth.js",
+    "dev_auth_getuser_dedupe.js",
+    "dev_cloud_visibility_preserve.js",
+    "dev_cloud_saves.js",
+    "dev_landing_armies.js",
+    "dev_privacy_account.js",
+    "dev_retention.js",
+    "dev_shared_armies.js",
+]
+
+CAMPAIGN_SOURCES = [
     "campaign.js",
+    "dev_campaigns.js",
+    "dev_campaign_armies.js",
+    "dev_campaign_territories.js",
+    "dev_territory_permissions.js",
+    "dev_territory_random_server.js",
+    "dev_territory_specific_create.js",
+    "dev_campaign_delete.js",
+    "dev_campaign_dialog_guard.js",
+    "dev_mighty_empires_manual_builder_v3.js",
+    "dev_mighty_empires_tray_scroll.js",
+    "dev_mighty_empires_map_scroll.js",
+    "dev_modal_close.js",
 ]
 
-missing = [name for name in SOURCES if not (ROOT / name).exists()]
-if missing:
-    raise SystemExit(f"Missing bundle source files: {', '.join(missing)}")
+BUNDLES = {
+    "dev_core_bundle.js": CORE_SOURCES,
+    "dev_account_bundle.js": ACCOUNT_SOURCES,
+    "dev_campaign_bundle.js": CAMPAIGN_SOURCES,
+}
 
-parts = [
-    "// GENERATED FILE - DO NOT EDIT DIRECTLY.\n",
-    "// Built by tools/build_dev_bundle.py. Source file boundaries and order are preserved below.\n",
-]
-for name in SOURCES:
-    source = (ROOT / name).read_text(encoding="utf-8")
-    parts.append(f"\n/* ===== BEGIN {name} ===== */\n")
-    parts.append(source)
-    if not source.endswith("\n"):
-        parts.append("\n")
-    parts.append(";\n")
-    parts.append(f"/* ===== END {name} ===== */\n")
 
-(ROOT / "dev_bundle.js").write_text("".join(parts), encoding="utf-8")
+def build_bundle(filename, sources):
+    missing = [name for name in sources if not (ROOT / name).exists()]
+    if missing:
+        raise SystemExit(f"Missing sources for {filename}: {', '.join(missing)}")
+
+    parts = [
+        "// GENERATED FILE - DO NOT EDIT DIRECTLY.\n",
+        f"// Built by tools/build_dev_bundle.py as {filename}.\n",
+    ]
+    for name in sources:
+        source = (ROOT / name).read_text(encoding="utf-8")
+        parts.append(f"\n/* ===== BEGIN {name} ===== */\n")
+        parts.append(source)
+        if not source.endswith("\n"):
+            parts.append("\n")
+        parts.append(";\n")
+        parts.append(f"/* ===== END {name} ===== */\n")
+
+    (ROOT / filename).write_text("".join(parts), encoding="utf-8")
+
+
+for filename, sources in BUNDLES.items():
+    build_bundle(filename, sources)
 
 index_path = ROOT / "index.html"
 index = index_path.read_text(encoding="utf-8")
+
+# Remove old generated bundle tags and any direct application script tags. The
+# three explicit bundles below are the only JS entry points for the dev site.
 index = re.sub(r'<script\s+src="[^"]+"\s*></script>', '', index)
-index = index.replace("</body>", '<script src="dev_bundle.js?v=2"></script>\n</body>')
+
+# Authentication styles were previously injected by dev_runtime_loader.js.
+# Load them directly now that runtime script injection has been removed.
+if 'dev_auth.css' not in index:
+    index = index.replace(
+        '</head>',
+        '  <link rel="stylesheet" href="dev_auth.css?v=1">\n</head>'
+    )
+
+bundle_tags = (
+    '<script src="dev_core_bundle.js?v=1"></script>\n'
+    '<script src="dev_account_bundle.js?v=1"></script>\n'
+    '<script src="dev_campaign_bundle.js?v=1"></script>\n'
+)
+index = index.replace("</body>", bundle_tags + "</body>")
 index_path.write_text(index, encoding="utf-8")
 
-print(f"Built dev_bundle.js from {len(SOURCES)} source files")
+print(
+    "Built dev bundles: "
+    + ", ".join(f"{name} ({len(sources)} sources)" for name, sources in BUNDLES.items())
+)
