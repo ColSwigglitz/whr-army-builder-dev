@@ -11,15 +11,49 @@
     align-items: start;
   }
 
-  .unit-browser {
+  /* Both halves of the split builder are independent viewport-height scroll
+     regions. This makes it possible to browse the army book without losing
+     the user's place in the roster (and vice versa). */
+  .unit-browser,
+  .roster-panel {
     position: sticky;
     top: 6px;
-    max-height: calc(100vh - 12px);
+    height: calc(100dvh - 12px);
+    max-height: calc(100dvh - 12px);
     min-width: 0;
+    overflow-x: hidden;
+    overflow-y: scroll;
+    overscroll-behavior: contain;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: auto;
+    scrollbar-color: #765a2f #e5dac5;
   }
 
-  .roster-panel {
-    min-width: 0;
+  /* Reinforce the otherwise very subtle mobile/Chromium scroll indicators.
+     The darker thumb and parchment track make it obvious that each half can
+     be scrolled independently. */
+  .unit-browser::-webkit-scrollbar,
+  .roster-panel::-webkit-scrollbar {
+    width: 10px;
+  }
+
+  .unit-browser::-webkit-scrollbar-track,
+  .roster-panel::-webkit-scrollbar-track {
+    background: #e5dac5;
+    border-left: 1px solid #c6b28b;
+  }
+
+  .unit-browser::-webkit-scrollbar-thumb,
+  .roster-panel::-webkit-scrollbar-thumb {
+    min-height: 48px;
+    background: #8a6a36;
+    border: 2px solid #e5dac5;
+    border-radius: 999px;
+  }
+
+  .unit-browser::-webkit-scrollbar-thumb:active,
+  .roster-panel::-webkit-scrollbar-thumb:active {
+    background: #604820;
   }
 
   .panel-header {
