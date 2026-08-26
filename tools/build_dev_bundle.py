@@ -12,7 +12,7 @@ ARMY_SOURCES = [
 ACCOUNT_SOURCES = ["dev_auth.js","dev_auth_getuser_dedupe.js","dev_cloud_visibility_preserve.js","dev_cloud_saves.js","dev_landing_armies.js","dev_privacy_account.js","dev_retention.js","dev_shared_armies.js"]
 
 CAMPAIGN_SOURCES = [
-    "campaign.js","dev_campaigns.js","dev_campaign_armies.js","dev_thorskins_island.js","dev_campaign_territories.js","dev_territory_permissions.js","dev_territory_random_server.js","dev_territory_specific_create.js","dev_campaign_delete.js","dev_campaign_dialog_guard.js","dev_mighty_empires_manual_builder_v3.js","dev_mighty_empires_tray_scroll.js","dev_mighty_empires_map_scroll.js","dev_modal_close.js",
+    "campaign.js","dev_campaigns.js","dev_campaign_armies.js","dev_thorskins_island.js","dev_thorskins_campaign_armies.js","dev_campaign_territories.js","dev_territory_permissions.js","dev_territory_random_server.js","dev_territory_specific_create.js","dev_campaign_delete.js","dev_campaign_dialog_guard.js","dev_mighty_empires_manual_builder_v3.js","dev_mighty_empires_tray_scroll.js","dev_mighty_empires_map_scroll.js","dev_modal_close.js",
 ]
 
 BUNDLES={"dev_startup_bundle.js":STARTUP_SOURCES,"dev_army_bundle.js":ARMY_SOURCES,"dev_account_bundle.js":ACCOUNT_SOURCES,"dev_campaign_bundle.js":CAMPAIGN_SOURCES}
@@ -36,7 +36,7 @@ bundle_tags='''<script src="dev_startup_bundle.js?v=1"></script>
 <script>
 (() => {
   const loadScript = src => new Promise((resolve, reject) => { const script=document.createElement('script'); script.src=src; script.async=false; script.onload=resolve; script.onerror=()=>reject(new Error(`Could not load ${src}`)); document.body.appendChild(script); });
-  const startDeferredBundles=async()=>{try{await loadScript('dev_army_bundle.js?v=1');window.whrResolveArmyFeatures?.();}catch(error){console.error(error);window.whrRejectArmyFeatures?.(error);return;}try{await loadScript('dev_account_bundle.js?v=1');}catch(error){console.warn('Account bundle failed to load; army builder remains available.',error);}try{await loadScript('dev_campaign_bundle.js?v=2');}catch(error){console.warn('Campaign bundle failed to load; army builder remains available.',error);}};
+  const startDeferredBundles=async()=>{try{await loadScript('dev_army_bundle.js?v=1');window.whrResolveArmyFeatures?.();}catch(error){console.error(error);window.whrRejectArmyFeatures?.(error);return;}try{await loadScript('dev_account_bundle.js?v=1');}catch(error){console.warn('Account bundle failed to load; army builder remains available.',error);}try{await loadScript('dev_campaign_bundle.js?v=3');}catch(error){console.warn('Campaign bundle failed to load; army builder remains available.',error);}};
   const waitForArmyCards=()=>{if(window.state?.armyManifest||(typeof state!=='undefined'&&state.armyManifest)){requestAnimationFrame(()=>requestAnimationFrame(startDeferredBundles));return;}setTimeout(waitForArmyCards,25);};
   waitForArmyCards();
 })();
