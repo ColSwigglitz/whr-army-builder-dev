@@ -78,12 +78,14 @@
 
 
 
+
+
 <script src="dev_startup_bundle.js?v=1"></script>
 <!-- DEV_BUNDLE_LOADER_START -->
 <script>
 (() => {
   const loadScript = src => new Promise((resolve, reject) => { const script=document.createElement('script'); script.src=src; script.async=false; script.onload=resolve; script.onerror=()=>reject(new Error(`Could not load ${src}`)); document.body.appendChild(script); });
-  const startDeferredBundles=async()=>{try{await loadScript('dev_army_bundle.js?v=1');window.whrResolveArmyFeatures?.();}catch(error){console.error(error);window.whrRejectArmyFeatures?.(error);return;}try{await loadScript('dev_account_bundle.js?v=1');}catch(error){console.warn('Account bundle failed to load; army builder remains available.',error);}try{await loadScript('dev_campaign_bundle.js?v=2');}catch(error){console.warn('Campaign bundle failed to load; army builder remains available.',error);}};
+  const startDeferredBundles=async()=>{try{await loadScript('dev_army_bundle.js?v=1');window.whrResolveArmyFeatures?.();}catch(error){console.error(error);window.whrRejectArmyFeatures?.(error);return;}try{await loadScript('dev_account_bundle.js?v=1');}catch(error){console.warn('Account bundle failed to load; army builder remains available.',error);}try{await loadScript('dev_campaign_bundle.js?v=3');}catch(error){console.warn('Campaign bundle failed to load; army builder remains available.',error);}};
   const waitForArmyCards=()=>{if(window.state?.armyManifest||(typeof state!=='undefined'&&state.armyManifest)){requestAnimationFrame(()=>requestAnimationFrame(startDeferredBundles));return;}setTimeout(waitForArmyCards,25);};
   waitForArmyCards();
 })();
