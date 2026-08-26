@@ -28,7 +28,6 @@ create policy "Campaign teams readable by campaign participants" on public.campa
   or exists(select 1 from public.campaign_members cm where cm.campaign_id=campaign_teams.campaign_id and cm.user_id=auth.uid())
 );
 
--- Team names may be changed by either member of that team or the Campaign Master.
 drop policy if exists "Campaign owner or team members can rename teams" on public.campaign_teams;
 create policy "Campaign owner or team members can rename teams" on public.campaign_teams for update to authenticated using(
   exists(select 1 from public.campaigns c where c.id=campaign_teams.campaign_id and c.owner_id=auth.uid())
@@ -72,7 +71,8 @@ end; $$;
 revoke all on function public.whr_thorskins_assign_team(uuid,uuid,uuid) from public;
 grant execute on function public.whr_thorskins_assign_team(uuid,uuid,uuid) to authenticated;
 
--- Server-side visibility helper used by the UI and suitable for RLS/RPC checks.
+-- Owner sees every campaign army. Players see their own army and their team-mate's.
+-- Other campaign types retain the existing all-members-can-view behaviour.
 create or replace function public.whr_can_view_campaign_army(p_campaign_id uuid,p_army_owner uuid)
 returns boolean language sql stable security definer set search_path=public,auth as $$
   select exists(
@@ -80,6 +80,10 @@ returns boolean language sql stable security definer set search_path=public,auth
     where c.id=p_campaign_id and (
       c.owner_id=auth.uid()
       or p_army_owner=auth.uid()
+      or (
+        c.campaign_type_id <> 'thorskins_island'
+        and exists(select 1 from public.campaign_members cm where cm.campaign_id=c.id and cm.user_id=auth.uid())
+      )
       or (
         c.campaign_type_id='thorskins_island'
         and exists(
@@ -93,3 +97,11 @@ returns boolean language sql stable security definer set search_path=public,auth
 $$;
 revoke all on function public.whr_can_view_campaign_army(uuid,uuid) from public;
 grant execute on function public.whr_can_view_campaign_army(uuid,uuid) to authenticated;
+
+-- Replace the broad campaign-member read policy installed by 006. The helper
+-- keeps legacy behaviour for other campaign types and applies team privacy here.
+drop policy if exists "Campaign members can read campaign armies" on public.army_lists;
+create policy "Campaign members can read campaign armies"
+on public.army_lists for select to authenticated using(
+  campaign_id is not null and public.whr_can_view_campaign_army(campaign_id,owner_id)
+);
